@@ -1,0 +1,70 @@
+-- ============================================================================
+-- Modèle de page à suivre rigoureusement pour créer un fichier dans /Engine/
+-- ============================================================================
+
+-- Récupération du nom de l'addon et de la table partagée entre tous les fichiers
+local addonName, addon = ...
+
+-- Module [DESCRIPTION DE LA FONCTIONNALITÉ]
+addon.NomDuModule = {}
+
+-- Frame pour gérer les événements
+local eventFrame = CreateFrame("Frame")
+
+-- ============================================================================
+-- FONCTIONS PRIVÉES (Mécanique interne)
+-- ============================================================================
+
+-- Fonction principale du module
+local function Work()
+    if not addon.NomDuModule:IsEnabled() then
+        return
+    end
+    
+    -- TODO : Implémenter la logique métier
+end
+
+-- ============================================================================
+-- FONCTIONS PUBLIQUES (API du module)
+-- ============================================================================
+
+function addon.NomDuModule:IsEnabled()
+    return UTT_Data and UTT_Data.nomDuModuleEnabled or false
+end
+
+function addon.NomDuModule:Enable()
+    addon:EnsureUTTData()
+    UTT_Data.nomDuModuleEnabled = true
+    -- TODO : Enregistrer les événements appropriés
+    -- eventFrame:RegisterEvent("EVENEMENT_APPROPRIE")
+end
+
+function addon.NomDuModule:Disable()
+    addon:EnsureUTTData()
+    UTT_Data.nomDuModuleEnabled = false
+    -- TODO : Désenregistrer les événements
+    -- eventFrame:UnregisterEvent("EVENEMENT_APPROPRIE")
+end
+
+-- ============================================================================
+-- INITIALISATION ET ÉVÉNEMENTS
+-- ============================================================================
+
+function addon.NomDuModule:Init()
+    addon:EnsureUTTData()
+    if UTT_Data.nomDuModuleEnabled == nil then
+        UTT_Data.nomDuModuleEnabled = false
+    end
+    
+    if UTT_Data.nomDuModuleEnabled then
+        -- TODO : Réactiver les événements si le module était activé
+        -- eventFrame:RegisterEvent("EVENEMENT_APPROPRIE")
+    end
+    
+    -- TODO : Configurer le gestionnaire d'événements
+    -- eventFrame:SetScript("OnEvent", function(self, event)
+    --     if event == "EVENEMENT_APPROPRIE" then
+    --         Work()
+    --     end
+    -- end)
+end

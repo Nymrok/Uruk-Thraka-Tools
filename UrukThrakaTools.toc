@@ -1,0 +1,55 @@
+## Interface: 110200
+## Title: Uruk Thraka Tools
+## Author: Nymrok-Ysondre (EU)
+## Version: 2.0.0
+## Notes: Addon multifonction pour l'optimisation du gameplay
+## IconTexture: Interface/AddOns/UrukThrakaTools/Logo.tga
+## AddonCompartmentFunc: UTT_AC
+
+## SavedVariables: UTT_Data 
+
+# Core
+Core\Constants.lua
+Core\Notifications.lua
+Core\Init.lua
+Core\Cmd.lua
+Core\Nav.lua
+
+# Engine
+Engine\AutoQuestsTake.lua
+Engine\AutoQuestsReturn.lua
+Engine\AutoSellGrey.lua
+Engine\FastLoot.lua
+Engine\AutoRepair.lua
+Engine\InventoryService.lua
+Engine\ExpeditionsService.lua
+
+# UI (chargé avant Content pour les templates)
+UI\MainUI.lua
+
+# UI Templates (tous les templates de boutons et composants)
+UI\ButtonTemplates.lua
+UI\Templates\HD_Btn_RedGrey.lua
+UI\Templates\HD_Btn_RedGold.lua
+UI\Templates\HD_Btn_VisibilityOn.lua
+UI\Templates\HD_Btn_Delete.lua
+UI\Templates\HD_Btn_Exit.lua
+UI\Templates\HD_Btn_Refresh.lua
+UI\Templates\HD_Btn_Plus.lua
+UI\Templates\AddButtonSD.lua
+UI\Templates\InfoButton.lua
+UI\Templates\HD_Btn_ArrowUp.lua
+UI\Templates\HD_Btn_ArrowDown.lua
+UI\Templates\CustomScrollFrameSD.lua
+
+# UI Components (composants utilisant les templates)
+UI\ListComponent.lua
+UI\OpenButton.lua
+UI\ExpeditionsIndicator.lua
+
+# Content
+Content\Home.lua
+Content\Quests.lua
+Content\Gear.lua
+Content\Inventory.lua
+Content\Expeditions.lua
