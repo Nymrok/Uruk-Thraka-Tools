@@ -67,26 +67,61 @@ function addon.Displayer.Inventory:CreateContent(displayFrame)
     itemsContainer:SetPoint("BOTTOMRIGHT", displayFrame, "BOTTOMRIGHT", -10, 10)
     
     -- Initialiser le ListComponent
-    itemsList = addon.ListComponent:Create(itemsContainer, {
-        emptyMessage = "Aucun objet configuré pour l'ouverture automatique",
-        renderRow = addon.ListComponent.RenderInventoryItem,
-        onDelete = function(itemID, itemData)
-            if addon.InventoryService then
-                addon.InventoryService:Remove(itemID)
-                updateItemsList() -- Mettre à jour immédiatement la liste
-            end
+    itemsList = addon.ListComponent:Create(itemsContainer)
+    
+    -- Configurer le callback de suppression
+    itemsList:DeleteRow(function(itemID, itemData)
+        if addon.InventoryService then
+            addon.InventoryService:Remove(itemID)
+            updateItemsList() -- Mettre à jour immédiatement la liste
         end
-    })
+    end)
+    
+    -- Configurer le rendu des objets d'inventaire
+    itemsList:CreateRow(function(rowFrame, itemID, data)
+        -- Icône de l'objet
+        local icon = rowFrame:CreateTexture(nil, "ARTWORK")
+        icon:SetPoint("LEFT", rowFrame, "LEFT", 6, 0)
+        icon:SetSize(22, 22)
+        
+        local iconTexture = data.icon
+        if not iconTexture or iconTexture == 134400 then
+            local _, _, _, _, _, _, _, _, _, realTimeIcon = GetItemInfo(itemID)
+            iconTexture = realTimeIcon or 134400
+        end
+        
+        icon:SetTexture(iconTexture)
+        
+        -- Bordure de l'icône
+        local iconBorder = rowFrame:CreateTexture(nil, "OVERLAY")
+        iconBorder:SetPoint("CENTER", icon, "CENTER", 0, 0)
+        iconBorder:SetSize(40, 40)
+        iconBorder:SetAtlas("GarrMission_WeakEncounterAbilityBorder-Lg")
+        iconBorder:SetVertexColor(0.3, 0.3, 0.3, 1)
+        
+        -- Nom de l'objet
+        local nameText = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        nameText:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+        nameText:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+        nameText:SetText(data.name or "Inconnu")
+        nameText:SetTextColor(1, 1, 1, 1)
+        
+        -- ID de l'objet
+        local idText = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        idText:SetFont("Fonts\\FRIZQT__.TTF", 10, "NORMAL")
+        idText:SetPoint("LEFT", nameText, "RIGHT", 8, 0)
+        idText:SetText("ID : " .. itemID)
+        idText:SetTextColor(0.5, 0.5, 0.5, 0.8)
+    end)
     
     -- Fonction pour mettre à jour la liste
     function updateItemsList()
-        local monitoredItems = {}
-        if addon.InventoryService then
-            monitoredItems = addon.InventoryService:GetMonitored()
+        if AutoOpen_Checkbox:GetChecked() and addon.InventoryService then
+            local monitoredItems = addon.InventoryService:GetMonitored() or {}
+            itemsList:SetData(monitoredItems)
+        else
+            itemsList:SetData({}) -- Liste vide si désactivé
         end
-        
-        local isEnabled = AutoOpen_Checkbox:GetChecked()
-        itemsList:Update(monitoredItems, isEnabled)
     end
     
     -- Mettre à jour la liste au démarrage

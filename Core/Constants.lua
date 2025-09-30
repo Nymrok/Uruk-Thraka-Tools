@@ -28,7 +28,8 @@ addon.Colors = {
     
     -- Éléments spéciaux
     GOLD = {r = 1.0, g = 0.8, b = 0.0, a = 1, hex = "|cFFFFC000"},           -- Or WoW standard
-    ADDON_PREFIX = {r = 0.2, g = 0.67, b = 0.2, a = 1, hex = "|cFF33AA33"},  -- Vert addon UTT
+    ADDON_PREFIX = {r = 1.0, g = 0.5, b = 0.0, a = 1, hex = "|cFFFF8000"},   -- Orange pour "[Uruk Thraka Tools]"
+    MODULE_NAME = {r = 1.0, g = 1.0, b = 1.0, a = 1, hex = "|cFFFFFFFF"},    -- Blanc pour "[Module]"
     
     -- Transparence pour ID
     ID_TRANSPARENCY = 0.5

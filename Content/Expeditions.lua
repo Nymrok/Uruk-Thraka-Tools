@@ -33,12 +33,12 @@ local function updateList()
     
     local service = addon.ExpeditionsService
     if not service then
-        addon.Notifications:Error("Service Expéditions non disponible")
+        addon.Notifications:ModuleError("Expéditions", "Service Expéditions non disponible")
         return
     end
     
-    -- Callback de suppression d'une expédition
-    local function onDeleteExpedition(questID, data)
+    -- Configurer le callback de suppression
+    expeditionsList:DeleteRow(function(questID, data)
         local removeResult = service:Remove(questID)
         if removeResult then
             addon.Notifications:ItemRemoved("Expédition", data.name or "Expédition", true)
@@ -46,16 +46,15 @@ local function updateList()
         else
             addon.Notifications:ItemRemoved("Expédition", data.name or "Expédition", false)
         end
-    end
+    end)
     
-    -- Mettre à jour la configuration du ListComponent avec le callback
-    if expeditionsList then
-        expeditionsList.config.onDelete = onDeleteExpedition
+    -- Mettre à jour les données si le service est activé
+    if service:IsEnabled() then
+        local data = service:GetMonitored() or {}
+        expeditionsList:SetData(data)
+    else
+        expeditionsList:SetData({}) -- Liste vide si désactivé
     end
-    
-    -- Utiliser le ListComponent standardisé
-    local data = service:GetMonitored() or {}
-    expeditionsList:Update(data, service:IsEnabled())
 end
 
 --[[
@@ -86,13 +85,13 @@ local function onAddExpedition()
     
     local questID = addInput:GetText()
     if not questID or questID == "" then
-        print("|cFFFF0000[UTT]|r Veuillez entrer un ID d'expédition")
+        addon.Notifications:ModuleError("Expéditions", "Veuillez entrer une ID d'expédition")
         return
     end
     
     local service = addon.ExpeditionsService
     if not service then
-        print("|cFFFF0000[UTT]|r Service Expéditions non disponible")
+        addon.Notifications:ModuleError("Expéditions", "Service Expéditions non disponible")
         return
     end
     
@@ -100,14 +99,14 @@ local function onAddExpedition()
     
     if success then
         addInput:SetText("") -- Vider le champ
-        print("|cFF00FF00[UTT]|r " .. message)
+        addon.Notifications:ModuleSuccess("Expéditions", message)
         
         -- Force une mise à jour immédiate de la liste pour afficher la couleur correcte
         C_Timer.After(0.1, function()
             updateList()
         end)
     else
-        print("|cFFFF0000[UTT]|r Erreur : " .. message)
+        addon.Notifications:ModuleError("Expéditions", message)
     end
 end
 
@@ -157,7 +156,7 @@ function addon.Displayer.Expeditions:CreateContent(frame)
     
     local enabledLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     enabledLabel:SetPoint("LEFT", enabledCheckbox, "RIGHT", 5, 0)
-    enabledLabel:SetText("Surveillance des expéditions")
+    enabledLabel:SetText("Activer la surveillance des expéditions")
     enabledLabel:SetTextColor(0.9, 0.9, 0.9, 1)
     
     -- ========================================
@@ -199,9 +198,83 @@ function addon.Displayer.Expeditions:CreateContent(frame)
     itemsContainer:SetHeight(200)
     
     -- Initialiser le ListComponent
-    expeditionsList = addon.ListComponent:Create(itemsContainer, {
-        renderRow = addon.ListComponent.RenderExpedition
-    })
+    expeditionsList = addon.ListComponent:Create(itemsContainer)
+    
+    -- Configurer le rendu des expéditions
+    expeditionsList:CreateRow(function(rowFrame, questID, data)
+        local viewButton = addon.ButtonTemplates.CreateHD_Btn_VisibilityOn(rowFrame)
+        viewButton:SetPoint("LEFT", rowFrame, "LEFT", 3, 0)
+        viewButton:SetSize(26, 26)
+        
+        local isAvailable = addon.ExpeditionsService and addon.ExpeditionsService:IsAvailable(questID)
+        
+        if isAvailable then
+            viewButton:SetEnabled(true)
+            viewButton:SetScript("OnClick", function()
+                -- Trouver la zone où se trouve l'expédition
+                local foundMapID = nil
+                local service = addon.ExpeditionsService
+                
+                if service and service.SCAN_ZONES then
+                    -- Chercher l'expédition dans les zones SCAN_ZONES du service
+                    for _, mapID in ipairs(service.SCAN_ZONES) do
+                        local quests = C_TaskQuest.GetQuestsForPlayerByMapID(mapID)
+                        if quests then
+                            for _, quest in ipairs(quests) do
+                                if quest.questID == questID then
+                                    local isWorldQuest = C_QuestLog.IsWorldQuest(quest.questID)
+                                    local isCompleted = C_QuestLog.IsQuestFlaggedCompleted(quest.questID)
+                                    
+                                    if isWorldQuest and not isCompleted then
+                                        foundMapID = mapID
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        if foundMapID then break end
+                    end
+                end
+                
+                -- Ouvrir la carte
+                if foundMapID then
+                    if not WorldMapFrame:IsShown() then
+                        ToggleWorldMap()
+                    end
+                    WorldMapFrame:SetMapID(foundMapID)
+                    local mapInfo = C_Map.GetMapInfo(foundMapID)
+                    addon.Notifications:ModuleSuccess("Expéditions", "Carte ouverte : " .. (mapInfo and mapInfo.name or foundMapID) .. " pour " .. (data.name or questID))
+                else
+                    -- Si pas trouvé, ouvrir juste la carte
+                    if not WorldMapFrame:IsShown() then
+                        ToggleWorldMap()
+                    end
+                    addon.Notifications:ModuleWarning("Expéditions", "Expédition non trouvée sur la carte : " .. (data.name or questID))
+                end
+            end)
+        else
+            viewButton:SetEnabled(false)
+        end
+        
+        -- Nom de l'expédition
+        local nameText = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        nameText:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+        nameText:SetPoint("LEFT", viewButton, "RIGHT", 5, 0)
+        nameText:SetText(data.name or "Expédition inconnue")
+        
+        if isAvailable then
+            nameText:SetTextColor(0, 1, 0, 1) -- Vert si disponible
+        else
+            nameText:SetTextColor(0.3, 0.3, 0.3, 1) -- Rouge si indisponible
+        end
+        
+        -- ID de l'expédition
+        local idText = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        idText:SetFont("Fonts\\FRIZQT__.TTF", 10, "NORMAL")
+        idText:SetPoint("LEFT", nameText, "RIGHT", 5, 0)
+        idText:SetText("ID : " .. questID)
+        idText:SetTextColor(0.5, 0.5, 0.5, 0.8)
+    end)
     
     -- ========================================
     -- ÉVÉNEMENTS ET INITIALISATION

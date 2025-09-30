@@ -1,7 +1,7 @@
 ## Interface: 110200
 ## Title: Uruk Thraka Tools
 ## Author: Nymrok-Ysondre (EU)
-## Version: 2.0.0
+## Version: 2.1.0
 ## Notes: Addon multifonction pour l'optimisation du gameplay
 ## IconTexture: Interface/AddOns/UrukThrakaTools/Logo.tga
 ## AddonCompartmentFunc: UTT_AC
@@ -12,7 +12,7 @@
 Core\Constants.lua
 Core\Notifications.lua
 Core\Init.lua
-Core\Cmd.lua
+Core\SlashCommands.lua
 Core\Nav.lua
 
 # Engine
@@ -28,8 +28,8 @@ Engine\ExpeditionsService.lua
 UI\MainUI.lua
 
 # UI Templates (tous les templates de boutons et composants)
-UI\ButtonTemplates.lua
 UI\Templates\HD_Btn_RedGrey.lua
+UI\Templates\HD_Btn_RedGrey_Stretch.lua
 UI\Templates\HD_Btn_RedGold.lua
 UI\Templates\HD_Btn_VisibilityOn.lua
 UI\Templates\HD_Btn_Delete.lua
@@ -40,7 +40,6 @@ UI\Templates\AddButtonSD.lua
 UI\Templates\InfoButton.lua
 UI\Templates\HD_Btn_ArrowUp.lua
 UI\Templates\HD_Btn_ArrowDown.lua
-UI\Templates\CustomScrollFrameSD.lua
 
 # UI Components (composants utilisant les templates)
 UI\ListComponent.lua
@@ -49,6 +48,7 @@ UI\ExpeditionsIndicator.lua
 
 # Content
 Content\Home.lua
+Content\Development.lua
 Content\Quests.lua
 Content\Gear.lua
 Content\Inventory.lua

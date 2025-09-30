@@ -9,6 +9,9 @@ UTT = addon
 -- Initialisation des modules UI essentiels
 addon.ButtonTemplates = addon.ButtonTemplates or {}
 
+-- Initialisation de la structure de données addon.Data
+addon.Data = addon.Data or {}
+
 -- Configurations globales
 addon.version = C_AddOns.GetAddOnMetadata(addonName, "Version")
 
@@ -70,8 +73,11 @@ function addon:OnLoad()
             enabled = true,
             -- Ajoutez d'autres variables par défaut ici
         }
-        self:Print("Initialisation des données par défaut.")
+        addon.Notifications:ModuleInfo("Init", "Initialisation des données par défaut")
     end
+
+    -- Initialisation de addon.Data avec les structures nécessaires
+    self.Data = self.Data or {}
 
     -- Enregistrement de la commande slash
     SLASH_UTT1 = "/utt"
@@ -89,9 +95,9 @@ SlashCmdList["UTTEXPEDITIONS"] = function(msg)
     elseif msg == "status" then
         local status = addon.ExpeditionsService:IsEnabled() and "activé" or "désactivé"
         local count = addon.ExpeditionsService:GetAvailableCount()
-        print("[UTT] Service Expéditions : " .. status .. " (" .. count .. " disponibles)")
+        addon.Notifications:ModuleInfo("ExpeditionsService", "Service Expéditions : " .. status .. " (" .. count .. " disponibles)")
     else
-        print("[UTT] Commandes : /uttexpeditions enable|disable|status")
+        addon.Notifications:ModulePrint("ExpeditionsService", "Commandes : /uttexpeditions enable|disable|status")
     end
 end
 
@@ -140,7 +146,7 @@ end    -- Nettoyage AGRESSIF de toutes les anciennes clés à chaque chargement
         end
         
         if cleanedCount > 0 then
-            addon:Print("Nettoyage automatique : " .. cleanedCount .. " clés obsolètes supprimées.")
+            addon.Notifications:ModuleInfo("Init", "Nettoyage automatique : " .. cleanedCount .. " clés obsolètes supprimées")
         end
     end
 
@@ -170,7 +176,7 @@ end    -- Nettoyage AGRESSIF de toutes les anciennes clés à chaque chargement
     -- Vérifier que le displayer est bien enregistré
     if not self.Displayer then
         self.Displayer = {}
-        self:Print("ATTENTION : Table Displayer initialisée vide !")
+        addon.Notifications:ModuleWarning("Init", "Table Displayer initialisée vide")
     end
 
     -- Initialisation du service Expéditions

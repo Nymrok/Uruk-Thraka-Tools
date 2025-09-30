@@ -96,7 +96,7 @@ local function createIndicator()
         if isDragging then return end
         
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText("Expéditions UTT", 1, 0.8, 0, 1, true)
+        GameTooltip:SetText("Expéditions disponibles !", 1, 0.8, 0, 1, true)
         
         local count = addon.ExpeditionsService:GetAvailableCount()
         if count > 0 then
@@ -240,11 +240,11 @@ function addon.ExpeditionsIndicator:Init()
         
         -- Callbacks pour notifications (optionnel - pour feedback utilisateur)
         addon.ExpeditionsService:OnAvailable(function(questID, questName)
-            print("|cFF00FF00[UTT]|r Expédition disponible : " .. questName)
+            addon.Notifications:ModuleSuccess("Expéditions", "Disponible : " .. questName)
         end)
         
         addon.ExpeditionsService:OnUnavailable(function(questID, questName)
-            print("|cFFFFAA00[UTT]|r Expédition terminée : " .. questName)
+            addon.Notifications:ModuleInfo("Expéditions", "Terminée : " .. questName)
         end)
     end
     

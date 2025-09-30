@@ -20,7 +20,7 @@ function addon.Nav:Init(navFrame)
     end
 
     -- Créer les boutons de navigation
-    local pageOrder = {"Home", "Gear", "Inventory", "Quests", "Expeditions"}
+    local pageOrder = {"Home", "Inventory", "Gear", "Quests", "Expeditions", "Development"}
     
     for _, pageId in ipairs(pageOrder) do
         local pageData = addon.Displayer[pageId]

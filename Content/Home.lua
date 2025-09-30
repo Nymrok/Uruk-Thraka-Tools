@@ -12,14 +12,14 @@ function addon.Displayer.Home:CreateContent(displayFrame)
     local version = C_AddOns.GetAddOnMetadata(addonName, "Version") or "Inconnue"
     local author = C_AddOns.GetAddOnMetadata(addonName, "Author") or "Inconnu"
     
-    local nameText = displayFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local nameText = displayFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     nameText:SetPoint("TOPLEFT", displayFrame, "TOPLEFT", 20, -20)
-    nameText:SetText("|cffffd700Nom :|r Uruk Thraka Tools")
+    nameText:SetText("|cffffd700Uruk Thraka Tools|r ")
     nameText:SetTextColor(1, 1, 1, 1)
     nameText:SetJustifyH("LEFT")
     
     local versionText = displayFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    versionText:SetPoint("TOPLEFT", nameText, "TOPLEFT", 0, -20)
+    versionText:SetPoint("TOPLEFT", nameText, "TOPLEFT", 0, -26)
     versionText:SetText("|cffffd700Version :|r " .. version)
     versionText:SetTextColor(1, 1, 1, 1)
     versionText:SetJustifyH("LEFT")

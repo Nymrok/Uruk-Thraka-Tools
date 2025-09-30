@@ -68,9 +68,11 @@ function addon.ButtonTemplates.CreateHD_Btn_RedGrey(parent, text, width, height)
     if text then
         button:SetText(text)
         button:SetNormalFontObject("GameFontNormal")
-        button:GetFontString():SetTextColor(1, 1, 1, 1)
-        button:GetFontString():SetPoint("CENTER", button, "CENTER", 0, 0)
-        button:GetFontString():SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+        local fontString = button:GetFontString()
+        fontString:SetTextColor(1, 1, 1, 1)
+        fontString:SetPoint("CENTER", button, "CENTER", 0, 0)
+        fontString:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+        fontString:SetDrawLayer("OVERLAY", 1) -- Strate supérieure à HIGHLIGHT
     end
     
     return button

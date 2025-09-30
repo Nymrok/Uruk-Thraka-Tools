@@ -75,7 +75,7 @@ local function CreateOpenButton()
         else
             -- Fallback si ChatFrame1Tab n'existe pas
             openButton:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 20, 100)
-            print("|cFFFFAA00[UTT]|r ChatFrame1Tab non trouvé, bouton UTT positionné en fallback")
+            addon.Notifications:ModuleWarning("OpenButton", "ChatFrame1Tab non trouvé, bouton UTT positionné en fallback")
         end
     end
     
@@ -140,7 +140,7 @@ local function CreateOpenButton()
                 if addon.UI and addon.UI.Show then
                     addon.UI:Show()
                 else
-                    print("|cFFFF0000[UTT]|r Erreur : Module UI non disponible")
+                    addon.Notifications:ModuleError("OpenButton", "Module UI non disponible")
                 end
             end
         end

@@ -11,61 +11,77 @@ addon.ExpeditionsService = addon.ExpeditionsService or {}
 -- ============================================================================
 -- ÉTAT PRIVÉ
 -- ============================================================================
-local isEnabled = false
-local monitoredCache = {}
+local isEnabled = false -- true / false || Service : Activé / Désactivé
 local availableCache = {}
 local callbacks = {
-    onAvailable = {},
-    onUnavailable = {},
+    onAvailable = {}, -- {questID, questName} || Quand une expédition devient disponible
+    onUnavailable = {}, -- {questID, questName} || Quand une expédition n'est plus disponible
     onChange = {}
 }
 
 -- Frame pour gérer les événements
 local eventFrame = CreateFrame("Frame")
 
--- Zones de scan optimisées pour les extensions récentes (ajout de toutes les zones TWW)
-local SCAN_ZONES = {
-    -- The War Within (toutes les zones connues)
-    2248, -- Isle of Dorn
-    2339, -- Dornogal  
-    2214, -- The Ringing Deeps
-    2215, -- Hallowfall
-    2255, -- Azj-Kahet
-    2256, -- The City of Threads
-    2213, -- Nerub'ar Palace
-    2274, -- Khaz Algar
-    2216, -- Ara-Kara, City of Echoes
-    2217, -- The Dawnbreaker
-    2267, -- The Stonevault
-    2269, -- City of Threads
-    2270, -- Ara-Kara
-    2271, -- The Dawnbreaker  
-    2272, -- Mists of Tirna Scithe
-    2273, -- The Necrotic Wake
-    2275, -- Sanguine Depths
-    2276, -- Spires of Ascension
-    2277, -- Theater of Pain
-    2278, -- De Other Side
-    2279, -- Halls of Atonement
-    2280, -- Plaguefall
-    2346, -- Zone Terremine découverte
-    -- Dragonflight  
-    2022, 2023, 2024, 2025, 2112, 2151,
-    2200, 2133, 2134, 2135, 2136, 2137, -- Zones Dragonflight supplémentaires
-    -- Shadowlands
-    1533, 1525, 1536, 1565, 1970, 1961,
-    1543, 1565, 1670, 1671, 1672, 1673, -- Zones Shadowlands supplémentaires
-    -- Battle for Azeroth  
-    875, 876, 862, 863, 864, 896, 942,
-    1462, 1355, 1161, 1165, 1642, 1643, -- Zones BfA supplémentaires
-    -- Legion + Argus (AJOUTÉ)
-    630, 641, 650, 634, 680, 646, 790, 882,
-    830, 882, 885, -- Mac'Aree, Antoran Wastes, Krokuun (Argus)
-    -- Zones classiques qui peuvent avoir des expéditions
-    1, 14, 15, 17, 37, 51, 61, -- Kalimdor
-    13, 20, 23, 26, 27, 32, 36, -- Eastern Kingdoms  
-    485, 486, 488, 490, 491, 492, -- Pandaria
-    539, 540, 542, 543, 550, 552, 554 -- Draenor
+-- Zones d'expéditions précises basées sur la hiérarchie cartographique complète
+addon.ExpeditionsService.SCAN_ZONES = {
+    -- Kalimdor
+    62,   -- Sombrivage
+    
+    -- Royaumes de l'Est
+    14,   -- Hautes-terres Arathies
+    
+    -- Îles Brisées
+    630,  -- Azsuna
+    641,  -- Val'sharah
+    650,  -- Haut-Roc
+    634,  -- Tornheim
+    680,  -- Suramar
+    790,  -- L'Oeil d'Azshara
+    646,  -- Rivage Brisé
+    830,  -- Krokuun
+    882,  -- Érédath
+    885,  -- Étendues Antoréennes
+    
+    -- Zandalar
+    864,  -- Vol'dun
+    863,  -- Nazmir
+    862,  -- Zuldazar
+    
+    -- Kul Tiras
+    896,  -- Drustvar
+    942,  -- Vallée Chantorage
+    1462, -- Île de Mécagone
+    895,  -- Rade de Tiragarde
+    1161, -- Boralus
+    
+    -- Nazjatar
+    1355, -- Nazjatar
+    
+    -- Île aux Dragons
+    2022, -- Rivages de l'Éveil
+    2023, -- Plaines d'Ohn'ahra
+    2024, -- Travée d'Azur
+    2025, -- Thaldraszus
+    2151, -- Confins Interdits
+    2133, -- Grotte de Zaralek
+    2200, -- Rêve d'émeraude
+    
+    -- Khaz Algar
+    2248, -- Île de Dorn
+    2215, -- Sainte-Chute
+    2255, -- Azj'Kahet
+    2369, -- Île aux Sirènes
+    2371, -- K'aresh
+    2214, -- Les abîmes Retentissants
+    2346, -- Terremine
+    
+    -- Ombreterre
+    1525, -- Revendreth
+    1565, -- Sylvarden
+    1533, -- Le Bastion
+    1536, -- Maldraxxus
+    1970, -- Zereth Mortis
+    1543, -- Antre
 }
 
 -- ============================================================================
@@ -96,7 +112,7 @@ end
 ]]
 local function isQuestAvailable(questID)
     -- Scanner les zones spécifiques pour trouver la quête
-    for _, mapID in ipairs(SCAN_ZONES) do
+    for _, mapID in ipairs(addon.ExpeditionsService.SCAN_ZONES) do
         local quests = C_TaskQuest.GetQuestsForPlayerByMapID(mapID)
         if quests then
             for _, quest in ipairs(quests) do
@@ -108,6 +124,39 @@ local function isQuestAvailable(questID)
                     
                     -- SEULEMENT si c'est une WorldQuest ET qu'elle n'est PAS terminée
                     if isWorldQuest and not isCompleted then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Si pas trouvé dans les zones habituelles, essayer une recherche exhaustive rapide
+    -- (seulement pour les zones TWW récentes 2500-2700)
+    for testMapID = 2500, 2700 do
+        local quests = C_TaskQuest.GetQuestsForPlayerByMapID(testMapID)
+        if quests then
+            for _, quest in ipairs(quests) do
+                if quest.questID == questID then
+                    local isWorldQuest = C_QuestLog.IsWorldQuest(quest.questID)
+                    local isCompleted = C_QuestLog.IsQuestFlaggedCompleted(quest.questID)
+                    
+                    if isWorldQuest and not isCompleted then
+                        -- Ajouter cette zone aux zones de scan pour éviter les futures recherches
+                        local alreadyInScan = false
+                        for _, existingMapID in ipairs(addon.ExpeditionsService.SCAN_ZONES) do
+                            if existingMapID == testMapID then
+                                alreadyInScan = true
+                                break
+                            end
+                        end
+                        
+                        if not alreadyInScan then
+                            table.insert(addon.ExpeditionsService.SCAN_ZONES, testMapID)
+                            local mapInfo = C_Map.GetMapInfo(testMapID)
+                            print("[UTT] Zone auto-ajoutée : " .. testMapID .. " (" .. (mapInfo and mapInfo.name or "Inconnue") .. ")")
+                        end
+                        
                         return true
                     end
                 end
@@ -371,6 +420,71 @@ function addon.ExpeditionsService:ForceScan()
 end
 
 --[[
+    Recherche exhaustive d'une expédition dans toutes les zones possibles
+    et met à jour automatiquement SCAN_ZONES si nécessaire
+    @param questID number - L'ID de l'expédition à chercher
+    @return table - Résultats de la recherche
+]]
+function addon.ExpeditionsService:FindQuest(questID)
+    if not questID then return nil end
+    
+    questID = tonumber(questID)
+    local results = {
+        questID = questID,
+        found = false,
+        foundZones = {},
+        newZones = {}
+    }
+    
+    -- D'abord vérifier dans les zones existantes
+    for _, mapID in ipairs(addon.ExpeditionsService.SCAN_ZONES) do
+        local quests = C_TaskQuest.GetQuestsForPlayerByMapID(mapID)
+        if quests then
+            for _, quest in ipairs(quests) do
+                if quest.questID == questID then
+                    results.found = true
+                    table.insert(results.foundZones, mapID)
+                end
+            end
+        end
+    end
+    
+    -- Si pas trouvé, recherche exhaustive dans les zones 2000-2700
+    if not results.found then
+        for testMapID = 2000, 2700 do
+            local quests = C_TaskQuest.GetQuestsForPlayerByMapID(testMapID)
+            if quests then
+                for _, quest in ipairs(quests) do
+                    if quest.questID == questID then
+                        results.found = true
+                        table.insert(results.foundZones, testMapID)
+                        
+                        -- Vérifier si cette zone n'est pas déjà dans SCAN_ZONES
+                        local alreadyInScan = false
+                        for _, existingMapID in ipairs(addon.ExpeditionsService.SCAN_ZONES) do
+                            if existingMapID == testMapID then
+                                alreadyInScan = true
+                                break
+                            end
+                        end
+                        
+                        if not alreadyInScan then
+                            table.insert(results.newZones, testMapID)
+                            -- Ajouter automatiquement à SCAN_ZONES pour les futurs scans
+                            table.insert(addon.ExpeditionsService.SCAN_ZONES, testMapID)
+                            local mapInfo = C_Map.GetMapInfo(testMapID)
+                            print("[UTT] Nouvelle zone ajoutée au scan : " .. testMapID .. " (" .. (mapInfo and mapInfo.name or "Inconnue") .. ")")
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return results
+end
+
+--[[
     Vide le cache et force un rescan complet
 ]]
 function addon.ExpeditionsService:ClearCache()
@@ -412,7 +526,7 @@ function addon.ExpeditionsService:Debug(questID)
     end
     
     -- Tester toutes les zones
-    for _, mapID in ipairs(SCAN_ZONES) do
+    for _, mapID in ipairs(addon.ExpeditionsService.SCAN_ZONES) do
         local mapInfo = C_Map.GetMapInfo(mapID)
         local quests = C_TaskQuest.GetQuestsForPlayerByMapID(mapID)
         local questCount = quests and #quests or 0
@@ -443,7 +557,7 @@ function addon.ExpeditionsService:Debug(questID)
         
         -- Recherche détaillée dans toutes les zones
         results.foundInZones = {}
-        for _, mapID in ipairs(SCAN_ZONES) do
+        for _, mapID in ipairs(addon.ExpeditionsService.SCAN_ZONES) do
             local quests = C_TaskQuest.GetQuestsForPlayerByMapID(mapID)
             if quests then
                 for _, quest in ipairs(quests) do
@@ -457,6 +571,29 @@ function addon.ExpeditionsService:Debug(questID)
                             isCompleted = C_QuestLog.IsQuestFlaggedCompleted(quest.questID),
                             hasCoordinates = quest.x and quest.y and true or false
                         })
+                    end
+                end
+            end
+        end
+        
+        -- RECHERCHE EXHAUSTIVE : Tester une gamme élargie de zones si pas trouvé
+        if #results.foundInZones == 0 then
+            results.exhaustiveSearch = {}
+            -- Tester les zones 2000-2700 (toutes les zones récentes potentielles)
+            for testMapID = 2000, 2700 do
+                local quests = C_TaskQuest.GetQuestsForPlayerByMapID(testMapID)
+                if quests then
+                    for _, quest in ipairs(quests) do
+                        if quest.questID == questID then
+                            local mapInfo = C_Map.GetMapInfo(testMapID)
+                            table.insert(results.exhaustiveSearch, {
+                                mapID = testMapID,
+                                mapName = mapInfo and mapInfo.name or ("Zone " .. testMapID),
+                                questMapID = quest.mapID,
+                                isWorldQuest = C_QuestLog.IsWorldQuest(quest.questID),
+                                isCompleted = C_QuestLog.IsQuestFlaggedCompleted(quest.questID)
+                            })
+                        end
                     end
                 end
             end

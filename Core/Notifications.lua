@@ -2,6 +2,7 @@
 -- CORE - NOTIFICATIONS
 -- ============================================================================
 -- Système unifié de notifications et messages pour l'addon
+-- Format standardisé : "[Uruk Thraka Tools] [Module] [Type] : [Texte]"
 -- Utilise les couleurs standardisées de Constants.lua
 -- ============================================================================
 
@@ -14,100 +15,238 @@ local addonName, addon = ...
 addon.Notifications = {}
 
 -- ============================================================================
--- SYSTÈME DE NOTIFICATIONS
+-- COULEURS POUR LES TYPES DE MESSAGES
+-- ============================================================================
+
+local MESSAGE_COLORS = {
+    SUCCESS = "|cFF00FF00",  -- Vert
+    ERROR = "|cFFFF0000",    -- Rouge
+    WARNING = "|cFFFFFF00",  -- Jaune
+    INFO = "|cFF00AAFF",     -- Bleu clair
+    DEBUG = "|cFF888888"     -- Gris
+}
+
+-- ============================================================================
+-- FONCTION PRINCIPALE DE FORMATAGE
 -- ============================================================================
 
 --[[
-    Affiche un message de succès
-    @param message string - Le message à afficher
+    Fonction centrale pour formater tous les messages de l'addon
+    Format: "[Uruk Thraka Tools] [Module] : [Texte]"
+    @param module string - Nom du module
+    @param messageType string - Type de message (SUCCESS, ERROR, WARNING, INFO, DEBUG)
+    @param text string - Le texte du message
 ]]
-function addon.Notifications:Success(message)
-    local prefix = addon.Colors:GetHex("ADDON_PREFIX") .. "[Uruk Thraka Tools]|r "
-    local coloredMessage = addon.Colors:GetHex("SUCCESS") .. message .. "|r"
-    DEFAULT_CHAT_FRAME:AddMessage(prefix .. coloredMessage)
+local function formatMessage(module, messageType, text)
+    -- [Uruk Thraka Tools] en orange
+    local addonPrefix = "|cFFFF8000[Uruk Thraka Tools]|r"
+    
+    -- [Module] coloré selon le type de message
+    local typeColor = MESSAGE_COLORS[messageType] or "|cFFFFFFFF"
+    local modulePrefix = typeColor .. "[" .. (module or "Général") .. "]|r"
+    
+    -- Texte en blanc
+    local whiteText = "|cFFFFFFFF" .. text .. "|r"
+    
+    return addonPrefix .. " " .. modulePrefix .. " " .. whiteText
 end
 
 --[[
-    Affiche un message d'erreur
+    Fonction interne pour envoyer le message
+    @param module string - Nom du module
+    @param messageType string - Type de message
+    @param text string - Le texte du message
+]]
+local function sendMessage(module, messageType, text)
+    local formattedMessage = formatMessage(module, messageType, text)
+    DEFAULT_CHAT_FRAME:AddMessage(formattedMessage)
+end
+
+-- ============================================================================
+-- API PUBLIQUE - AVEC MODULE
+-- ============================================================================
+
+--[[
+    Affiche un message de succès avec module
+    @param module string - Nom du module
     @param message string - Le message à afficher
 ]]
-function addon.Notifications:Error(message)
-    local prefix = addon.Colors:GetHex("ADDON_PREFIX") .. "[Uruk Thraka Tools]|r "
-    local coloredMessage = addon.Colors:GetHex("ERROR") .. "Erreur : " .. message .. "|r"
-    DEFAULT_CHAT_FRAME:AddMessage(prefix .. coloredMessage)
+function addon.Notifications:ModuleSuccess(module, message)
+    sendMessage(module, "SUCCESS", message)
 end
 
 --[[
-    Affiche un message d'avertissement
+    Affiche un message d'erreur avec module
+    @param module string - Nom du module
     @param message string - Le message à afficher
 ]]
-function addon.Notifications:Warning(message)
-    local prefix = addon.Colors:GetHex("ADDON_PREFIX") .. "[Uruk Thraka Tools]|r "
-    local coloredMessage = addon.Colors:GetHex("WARNING") .. "Attention : " .. message .. "|r"
-    DEFAULT_CHAT_FRAME:AddMessage(prefix .. coloredMessage)
+function addon.Notifications:ModuleError(module, message)
+    sendMessage(module, "ERROR", message)
 end
 
 --[[
-    Affiche un message d'information
+    Affiche un message d'avertissement avec module
+    @param module string - Nom du module
     @param message string - Le message à afficher
 ]]
-function addon.Notifications:Info(message)
-    local prefix = addon.Colors:GetHex("ADDON_PREFIX") .. "[Uruk Thraka Tools]|r "
-    local coloredMessage = addon.Colors:GetHex("INFO") .. message .. "|r"
-    DEFAULT_CHAT_FRAME:AddMessage(prefix .. coloredMessage)
+function addon.Notifications:ModuleWarning(module, message)
+    sendMessage(module, "WARNING", message)
 end
 
 --[[
-    Affiche un message normal (sans couleur spéciale)
+    Affiche un message d'information avec module
+    @param module string - Nom du module
     @param message string - Le message à afficher
 ]]
-function addon.Notifications:Print(message)
-    local prefix = addon.Colors:GetHex("ADDON_PREFIX") .. "[Uruk Thraka Tools]|r "
-    DEFAULT_CHAT_FRAME:AddMessage(prefix .. message)
+function addon.Notifications:ModuleInfo(module, message)
+    sendMessage(module, "INFO", message)
 end
 
 --[[
-    Affiche un message de debug (seulement si le debug est activé)
+    Affiche un message de debug avec module (seulement si debug activé)
+    @param module string - Nom du module
     @param message string - Le message à afficher
 ]]
-function addon.Notifications:Debug(message)
-    -- TODO: Ajouter une variable de configuration pour le debug
+function addon.Notifications:ModuleDebug(module, message)
     if UTT_Data and UTT_Data.debugMode then
-        local prefix = addon.Colors:GetHex("ADDON_PREFIX") .. "[UTT Debug]|r "
-        local coloredMessage = addon.Colors:GetHex("MUTED") .. message .. "|r"
-        DEFAULT_CHAT_FRAME:AddMessage(prefix .. coloredMessage)
+        sendMessage(module, "DEBUG", message)
     end
 end
 
 -- ============================================================================
--- NOTIFICATIONS SPÉCIALISÉES
+-- API DE COMPATIBILITÉ (sans module spécifié)
+-- ============================================================================
+
+--[[
+    Affiche un message de succès (rétrocompatibilité)
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:Success(message)
+    -- Extraire le module du message si format "[Module] texte"
+    local module, text = message:match("^%[([^%]]+)%]%s*(.+)")
+    if module and text then
+        self:ModuleSuccess(module, text)
+    else
+        self:ModuleSuccess("Général", message)
+    end
+end
+
+--[[
+    Affiche un message d'erreur (rétrocompatibilité)
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:Error(message)
+    local module, text = message:match("^%[([^%]]+)%]%s*(.+)")
+    if module and text then
+        self:ModuleError(module, text)
+    else
+        self:ModuleError("Général", message)
+    end
+end
+
+--[[
+    Affiche un message d'avertissement (rétrocompatibilité)
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:Warning(message)
+    local module, text = message:match("^%[([^%]]+)%]%s*(.+)")
+    if module and text then
+        self:ModuleWarning(module, text)
+    else
+        self:ModuleWarning("Général", message)
+    end
+end
+
+--[[
+    Affiche un message d'information (rétrocompatibilité)
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:Info(message)
+    local module, text = message:match("^%[([^%]]+)%]%s*(.+)")
+    if module and text then
+        self:ModuleInfo(module, text)
+    else
+        self:ModuleInfo("Général", message)
+    end
+end
+
+--[[
+    Affiche un message normal (rétrocompatibilité)
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:Print(message)
+    local module, text = message:match("^%[([^%]]+)%]%s*(.+)")
+    if module and text then
+        self:ModuleInfo(module, text)
+    else
+        self:ModuleInfo("Général", message)
+    end
+end
+
+--[[
+    Affiche un message de debug (rétrocompatibilité)
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:Debug(message)
+    local module, text = message:match("^%[([^%]]+)%]%s*(.+)")
+    if module and text then
+        self:ModuleDebug(module, text)
+    else
+        self:ModuleDebug("Général", message)
+    end
+end
+
+-- ============================================================================
+-- FONCTIONS SPÉCIALISÉES (utilisant le nouveau format)
+-- ============================================================================
+
+--[[
+    Messages de résultats avec module
+    @param module string - Nom du module
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:ModuleResult(module, message)
+    self:ModuleSuccess(module, message)
+end
+
+--[[
+    Messages "aucun résultat" avec module
+    @param module string - Nom du module
+    @param message string - Le message à afficher
+]]
+function addon.Notifications:ModuleNoResult(module, message)
+    self:ModuleWarning(module, message)
+end
+
+-- ============================================================================
+-- NOTIFICATIONS SPÉCIALISÉES (utilisant le nouveau format)
 -- ============================================================================
 
 --[[
     Notification pour l'ajout d'un élément
-    @param itemType string - Type d'élément (ex: "expédition", "objet")
+    @param itemType string - Type d'élément (ex: "Expédition", "Objet")
     @param itemName string - Nom de l'élément
     @param success boolean - Si l'ajout a réussi
 ]]
 function addon.Notifications:ItemAdded(itemType, itemName, success)
     if success then
-        self:Success(itemType:gsub("^%l", string.upper) .. " ajoutée : " .. itemName)
+        self:ModuleSuccess(itemType, "Ajouté : " .. itemName)
     else
-        self:Error("Impossible d'ajouter " .. itemType .. " : " .. itemName)
+        self:ModuleError(itemType, "Impossible d'ajouter : " .. itemName)
     end
 end
 
 --[[
     Notification pour la suppression d'un élément
-    @param itemType string - Type d'élément (ex: "expédition", "objet")
+    @param itemType string - Type d'élément (ex: "Expédition", "Objet")
     @param itemName string - Nom de l'élément
     @param success boolean - Si la suppression a réussi
 ]]
 function addon.Notifications:ItemRemoved(itemType, itemName, success)
     if success then
-        self:Success(itemType:gsub("^%l", string.upper) .. " supprimée : " .. itemName)
+        self:ModuleSuccess(itemType, "Supprimé : " .. itemName)
     else
-        self:Error("Impossible de supprimer " .. itemType .. " : " .. itemName)
+        self:ModuleError(itemType, "Impossible de supprimer : " .. itemName)
     end
 end
 
@@ -118,22 +257,9 @@ end
 ]]
 function addon.Notifications:ServiceToggled(serviceName, enabled)
     if enabled then
-        self:Success("Service " .. serviceName .. " activé")
+        self:ModuleSuccess("Service", serviceName .. " activé")
     else
-        self:Info("Service " .. serviceName .. " désactivé")
-    end
-end
-
---[[
-    Notification pour les expéditions disponibles
-    @param expeditionName string - Nom de l'expédition
-    @param available boolean - Si l'expédition est disponible
-]]
-function addon.Notifications:ExpeditionStatus(expeditionName, available)
-    if available then
-        self:Success("Expédition disponible : " .. expeditionName)
-    else
-        self:Info("Expédition terminée : " .. expeditionName)
+        self:ModuleInfo("Service", serviceName .. " désactivé")
     end
 end
 
